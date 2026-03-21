@@ -2,7 +2,7 @@
 
 ROOTFS_DIR="/home/container/arch-rootfs"
 ARCH_URL="http://mirror.rackspace.com/archlinux/iso/latest/archlinux-bootstrap-x86_64.tar.zst"
-PROOT_URL="https://github.com/proot-me/proot/releases/download/v5.3.0/proot-v5.3.0-x86_64-static"
+PROOT_URL="https://github.com/proot-me/proot/releases/download/v5.3.0/proot-v5.3.0-x86-64-static"
 ZSTD_BIN="https://github.com/facebook/zstd/releases/download/v1.5.5/zstd-v1.5.5-linux-x86_64"
 
 if [ ! -e "$ROOTFS_DIR/.installed" ]; then
@@ -10,19 +10,23 @@ if [ ! -e "$ROOTFS_DIR/.installed" ]; then
     mkdir -p "$ROOTFS_DIR/usr/local/bin"
     mkdir -p "$ROOTFS_DIR/etc"
 
-    curl -L "$ARCH_URL" -o /tmp/arch.tar.zst
-    curl -L "$ZSTD_BIN" -o /tmp/zstd
-    chmod +x /tmp/zstd
+    # Tai truc tiep vao thu muc home de tranh loi /tmp day
+    curl -L "$ARCH_URL" -o arch.tar.zst
+    curl -L "$ZSTD_BIN" -o zstd_tmp
+    chmod +x zstd_tmp
     
-    /tmp/zstd -d /tmp/arch.tar.zst -o /tmp/arch.tar
-    tar -xf /tmp/arch.tar --strip-components=1 -C "$ROOTFS_DIR"
+    # Giai nen va xoa ngay file nen de giai phong dung luong
+    ./zstd_tmp -d arch.tar.zst -o arch.tar
+    rm arch.tar.zst zstd_tmp
+    
+    tar -xf arch.tar --strip-components=1 -C "$ROOTFS_DIR"
+    rm arch.tar
     
     curl -L "$PROOT_URL" -o "$ROOTFS_DIR/usr/local/bin/proot"
     chmod 755 "$ROOTFS_DIR/usr/local/bin/proot"
     
     printf "nameserver 1.1.1.1\nnameserver 8.8.8.8" > "$ROOTFS_DIR/etc/resolv.conf"
     
-    rm -rf /tmp/arch.tar.zst /tmp/arch.tar /tmp/zstd
     touch "$ROOTFS_DIR/.installed"
 fi
 

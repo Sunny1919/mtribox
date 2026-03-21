@@ -2,7 +2,7 @@
 
 ROOTFS_DIR="/home/container/arch-rootfs"
 ARCH_URL="http://mirror.rackspace.com/archlinux/iso/latest/archlinux-bootstrap-x86_64.tar.zst"
-PROOT_URL="https://github.com/proot-me/proot/releases/download/v5.3.0/proot-v5.3.0-x86-64-static"
+PROOT_URL="https://github.com/proot-me/proot/releases/download/v5.3.0/proot-v5.3.0-x86_64-static"
 ZSTD_BIN="https://github.com/facebook/zstd/releases/download/v1.5.5/zstd-v1.5.5-linux-x86_64"
 
 if [ ! -e "$ROOTFS_DIR/.installed" ]; then

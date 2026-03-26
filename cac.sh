@@ -2,17 +2,15 @@
 
 HOME="/home/container"
 HOMEA="$HOME/linux/.apt"
-
-# Toi uu hoa duong dan thu vien cho Debian moi
-export LD_LIBRARY_PATH="$HOMEA/usr/lib/x86_64-linux-gnu:$HOMEA/usr/lib:$HOMEA/lib/x86_64-linux-gnu:$HOMEA/lib:$HOMEA/usr/local/lib"
-export PATH="/bin:/usr/bin:/usr/local/bin:/sbin:$HOMEA/bin:$HOMEA/usr/bin:$HOMEA/sbin:$HOMEA/usr/sbin:$HOMEA/etc/init.d:$PATH"
-export BUILD_DIR=$HOMEA
+export LD_LIBRARY_PATH="$HOMEA/usr/lib/x86_64-linux-gnu:$HOMEA/usr/lib:$HOMEA/lib/x86_64-linux-gnu:$HOMEA/lib"
+export PATH="/bin:/usr/bin:/usr/local/bin:/sbin:$HOMEA/bin:$HOMEA/usr/bin:$HOMEA/sbin:$HOMEA/usr/sbin:$PATH"
 
 bold=$(echo -en "\e[1m")
 nc=$(echo -en "\e[0m")
 lightblue=$(echo -en "\e[94m")
 lightgreen=$(echo -en "\e[92m")
 
+# Banner ASCII Art
 echo "
 ${bold}${lightgreen}========================================================================
                                                                                                   
@@ -33,94 +31,70 @@ ${bold}${lightgreen}============================================================
  
 echo "${nc}"
 
+# Ham xu ly lenh terminal
+runcmd() {
+    while true; do
+        printf "${bold}${lightgreen}Default${nc}@${lightblue}Container${nc}:~ "
+        read -r cmdtorun
+        
+        # Kiem tra neu nguoi dung nhap /stop
+        if [[ "$cmdtorun" == "/stop" ]]; then
+            echo "${bold}${lightblue}Đang tắt Container theo yêu cầu...${nc}"
+            exit 0
+        fi
+        
+        # Chay lenh thong qua proot
+        ./libraries/proot -S . /bin/bash -c "$cmdtorun"
+    done
+}
+
 if [[ -f "./installed" ]]; then
-    echo "${bold}${lightgreen}==> Started ${lightblue}Container${lightgreen} <=="
-    function runcmd1 {
-        printf "${bold}${lightgreen}Default${nc}@${lightblue}Container${nc}:~ "
-        read -r cmdtorun
-        ./libraries/proot -S . /bin/bash -c "$cmdtorun"
-        runcmd
-    }
-    function runcmd {
-        printf "${bold}${lightgreen}Default${nc}@${lightblue}Container${nc}:~ "
-        read -r cmdtorun
-        ./libraries/proot -S . /bin/bash -c "$cmdtorun"
-        runcmd1
-    }
+    # Thong bao trang thai Online cho Pterodactyl
+    echo "Done (0.000s)! For help, type \"help\""
+    echo "Listening on /0.0.0.0:0"
+    echo "${bold}${lightgreen}==> Started ${lightblue}Container (Debian 12)${lightgreen} <=="
+    
+    # Tu dong chay neofetch khi khoi dong
+    ./libraries/proot -S . /bin/bash -c "neofetch"
+    
     runcmd
 else
     echo "Downloading files for application (Debian 12 Update)"
     
-    # Tai proot va cac cong cu ho tro
-    curl -sSLo libraries.zip https://github.com/RealTriassic/Ptero-VM-JAR/releases/download/latest/files.zip >/dev/null 2>err.log
-    echo -ne '###                 (15%)\r'
+    mkdir -p libraries
+    curl -sSLo libs.zip https://github.com/RealTriassic/Ptero-VM-JAR/releases/download/latest/files.zip
+    unzip -q libs.zip -d ./libraries/ || python3 -m zipfile -e libs.zip ./libraries/
     
-    # Tai RootFS Debian 12 moi nhat (x86_64)
-    curl -sSLo debian.tar.xz https://github.com/termux/proot-distro/releases/download/v3.16.0/debian-bookworm-x86_64.tar.xz >/dev/null 2>err.log
-    echo -ne '#######             (35%)\r'
+    if [ -d "./libraries/libraries" ]; then
+        mv ./libraries/libraries/* ./libraries/
+        rm -rf ./libraries/libraries
+    fi
+    rm -rf libs.zip
     
-    curl -sSLo unzip https://raw.githubusercontent.com/afnan007a/Ptero-vm/main/unzip >/dev/null 2>err.log
-    chmod +x unzip
-    ./unzip libraries.zip >/dev/null 2>err.log
-    echo -ne '##########          (50%)\r'
+    echo -ne '##########           (50%)\r'
+    curl -sSLo debian.tar.xz https://github.com/termux/proot-distro/releases/download/v3.16.0/debian-bookworm-x86_64.tar.xz
+    tar -xJf debian.tar.xz --exclude='dev' >/dev/null 2>&1
+    rm debian.tar.xz
     
-    # Giai nen Debian 12
-    tar -xJf debian.tar.xz --exclude='dev' >/dev/null 2>err.log
-    echo -ne '#############       (65%)\r'
+    chmod +x ./libraries/proot
     
-    chmod +x ./libraries/proot >/dev/null 2>err.log
-    
-    # Don dep file tam
-    rm -rf libraries.zip debian.tar.xz unzip >/dev/null 2>err.log
-    echo -ne '#################   (85%)\r'
-
-    # Thiet lap ban dau cho Debian moi
+    # Cai dat neofetch va cac cong cu
     cmds=(
         "apt-get update"
-        "apt-get install -y sudo curl wget htop nano neofetch python3 python3-pip"
-        "echo 'root:root' | chpasswd"
+        "apt-get install -y sudo curl wget htop nano neofetch python3"
     )
 
     for cmd in "${cmds[@]}"; do
-        ./libraries/proot -S . /bin/bash -c "$cmd >/dev/null 2>err.log"
+        ./libraries/proot -S . /bin/bash -c "$cmd >/dev/null 2>&1"
     done
-    
+
     echo -ne '####################(100%)\r'
     echo -ne '\n'
     touch installed
     
-    echo "
-${bold}${lightgreen}========================================================================
-                                                                                                  
-${bold}${lightblue}@@@@@@@   @@@@@@@  @@@@@@@@  @@@@@@@    @@@@@@      @@@  @@@  @@@@@@@@@@
-${bold}${lightblue}@@@@@@@@  @@@@@@@  @@@@@@@@  @@@@@@@@  @@@@@@@@     @@@  @@@  @@@@@@@@@@@    
-${bold}${lightblue}@@!  @@@    @@!    @@!       @@!  @@@  @@!  @@@     @@!  @@@  @@! @@! @@!    
-${bold}${lightblue}!@!  @!@    !@!    !@!       !@!  @!@  !@!  @!@     !@!  @!@  !@! !@! !@!     
-${bold}${lightblue}@!@@!@!     @!!    @!!!:!    @!@!!@!   @!@  !@!     @!@  !@!  @!! !!@ @!@      
-${bold}${lightblue}!!@!!!      !!!    !!!!!:    !!@!@!    !@!  !!!     !@!  !!!  !@!   ! !@!        
-${bold}${lightblue}!!:         !!:    !!:       !!: :!!   !!:  !!!     :!:  !!:  !!:     !!:        
-${bold}${lightblue}:!:         :!:    :!:       :!:  !:!  :!:  !:!      ::!!:!   :!:     :!:            
-${bold}${lightblue} ::          ::     :: ::::  ::   :::  ::::: ::       ::::    :::     ::        
-${bold}${lightblue} :           :     : :: ::    :   : :   : :  :         :       :      :          
-                                                                                                  
-                                                                                                                
-${bold}${lightgreen}========================================================================
- "
- 
-    echo "${nc}"
-    echo "${bold}${lightgreen}==> Started ${lightblue}Container (Debian 12)${lightgreen} <=="
+    echo "${bold}${lightgreen}Cài đặt hoàn tất! Đang khởi động...${nc}"
+    echo "Done (0.000s)! For help, type \"help\""
     
-    function runcmd1 {
-        printf "${bold}${lightgreen}Default${nc}@${lightblue}Container${nc}:~ "
-        read -r cmdtorun
-        ./libraries/proot -S . /bin/bash -c "$cmdtorun"
-        runcmd
-    }
-    function runcmd {
-        printf "${bold}${lightgreen}Default${nc}@${lightblue}Container${nc}:~ "
-        read -r cmdtorun
-        ./libraries/proot -S . /bin/bash -c "$cmdtorun"
-        runcmd1
-    }
+    ./libraries/proot -S . /bin/bash -c "neofetch"
     runcmd
 fi

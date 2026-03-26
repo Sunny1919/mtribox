@@ -31,70 +31,69 @@ ${bold}${lightgreen}============================================================
  
 echo "${nc}"
 
-# Ham xu ly lenh terminal
 runcmd() {
     while true; do
         printf "${bold}${lightgreen}Default${nc}@${lightblue}Container${nc}:~ "
         read -r cmdtorun
         
-        # Kiem tra neu nguoi dung nhap /stop
-        if [[ "$cmdtorun" == "/stop" ]]; then
-            echo "${bold}${lightblue}Đang tắt Container theo yêu cầu...${nc}"
+        if [[ "$cmdtorun" == "/stop" || "$cmdtorun" == "stop" ]]; then
+            echo "${bold}${lightblue}Đang tắt Container...${nc}"
             exit 0
         fi
         
-        # Chay lenh thong qua proot
-        ./libraries/proot -S . /bin/bash -c "$cmdtorun"
+        if [ -f "./libraries/proot" ]; then
+            ./libraries/proot -S . /bin/bash -c "$cmdtorun"
+        else
+            echo "Lỗi: Không tìm thấy ./libraries/proot. Vui lòng xóa file 'installed' và khởi động lại."
+            exit 1
+        fi
     done
 }
 
 if [[ -f "./installed" ]]; then
-    # Thong bao trang thai Online cho Pterodactyl
     echo "Done (0.000s)! For help, type \"help\""
     echo "Listening on /0.0.0.0:0"
     echo "${bold}${lightgreen}==> Started ${lightblue}Container (Debian 12)${lightgreen} <=="
     
-    # Tu dong chay neofetch khi khoi dong
-    ./libraries/proot -S . /bin/bash -c "neofetch"
-    
+    if [ -f "./libraries/proot" ]; then
+        ./libraries/proot -S . /bin/bash -c "neofetch"
+    fi
     runcmd
 else
     echo "Downloading files for application (Debian 12 Update)"
     
+    # Tao thu muc va tai file
     mkdir -p libraries
     curl -sSLo libs.zip https://github.com/RealTriassic/Ptero-VM-JAR/releases/download/latest/files.zip
-    unzip -q libs.zip -d ./libraries/ || python3 -m zipfile -e libs.zip ./libraries/
     
+    # Giai nen bang cach thuc an toan hon
+    unzip -o libs.zip -d ./libraries/ >/dev/null 2>&1
+    
+    # Sua loi thu muc long nhau (Rat quan trong)
     if [ -d "./libraries/libraries" ]; then
         mv ./libraries/libraries/* ./libraries/
         rm -rf ./libraries/libraries
     fi
-    rm -rf libs.zip
+    rm -f libs.zip
     
     echo -ne '##########           (50%)\r'
     curl -sSLo debian.tar.xz https://github.com/termux/proot-distro/releases/download/v3.16.0/debian-bookworm-x86_64.tar.xz
     tar -xJf debian.tar.xz --exclude='dev' >/dev/null 2>&1
-    rm debian.tar.xz
+    rm -f debian.tar.xz
     
     chmod +x ./libraries/proot
     
     # Cai dat neofetch va cac cong cu
-    cmds=(
-        "apt-get update"
-        "apt-get install -y sudo curl wget htop nano neofetch python3"
-    )
-
-    for cmd in "${cmds[@]}"; do
-        ./libraries/proot -S . /bin/bash -c "$cmd >/dev/null 2>&1"
-    done
-
-    echo -ne '####################(100%)\r'
-    echo -ne '\n'
-    touch installed
-    
-    echo "${bold}${lightgreen}Cài đặt hoàn tất! Đang khởi động...${nc}"
-    echo "Done (0.000s)! For help, type \"help\""
-    
-    ./libraries/proot -S . /bin/bash -c "neofetch"
-    runcmd
+    if [ -f "./libraries/proot" ]; then
+        ./libraries/proot -S . /bin/bash -c "apt-get update && apt-get install -y sudo curl wget htop nano neofetch python3"
+        echo -ne '####################(100%)\r'
+        echo -ne '\n'
+        touch installed
+        echo "Done (0.000s)! For help, type \"help\""
+        ./libraries/proot -S . /bin/bash -c "neofetch"
+        runcmd
+    else
+        echo "Lỗi nghiêm trọng: Không thể giải nén proot."
+        exit 1
+    fi
 fi
